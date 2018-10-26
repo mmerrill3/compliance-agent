@@ -3,6 +3,7 @@ package main
 import (
 	"bytes"
 	"crypto/tls"
+	"encoding/json"
 	"flag"
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/session"
@@ -12,6 +13,7 @@ import (
 	"net/http"
 	"os"
 	"time"
+	"v4e.io/compliance/agent/types"
 )
 
 var (
@@ -23,7 +25,6 @@ var (
 )
 
 func init() {
-	//configFile = flag.String("configurationFile", "/usr/local/compliance-agent/app.toml", "configuration file")
 	targetAddress = flag.String("target", "127.0.0.1", "target host")
 	flag.Parse()
 	flag.Lookup("logtostderr").Value.Set("true")
@@ -43,19 +44,21 @@ func main() {
 		DisableCompression: true,
 	}
 	tr.TLSClientConfig = &tls.Config{InsecureSkipVerify: true}
+	searchType := &types.SearchComputers{MaxItems: 1, SortByObjectID: true, SearchCriteria: []types.SearchCriteria{types.SearchCriteria{FieldName: "hostName", StringTest: "equal", StringValue: *targetAddress}}}
 	client := &http.Client{Transport: tr}
-	json := `{"maxItems": 1,"searchCriteria": [{"fieldName": "hostName","stringTest": "equal","stringValue": "`
-	json += *targetAddress
-	json += `"}],"sortByObjectID": true}`
-	glog.V(4).Infof("Built request for trend %s", json)
-	var jsonStr = []byte(json)
-	req, _ := http.NewRequest("POST", "https://10.71.6.95/api/computers/search", bytes.NewBuffer(jsonStr))
+	byteBuffer := new(bytes.Buffer)
+
+	if err := json.NewEncoder(byteBuffer).Encode(searchType); err != nil {
+		glog.Fatalf("Error creating json request to trend: %v", err)
+	}
+
+	req, _ := http.NewRequest("POST", "https://10.71.6.95/api/computers/search", byteBuffer)
 	req.Header.Set("api-secret-key", trendMicroToken)
 	req.Header.Set("api-version", "v1")
 	req.Header.Set("Content-Type", "application/json")
 	resp, err := client.Do(req)
 	if err != nil {
-		glog.Errorf("Error talking to remote host %x", err)
+		glog.Errorf("Error talking to remote host %v", err)
 	}
 	glog.V(4).Infof("Response: %s", resp)
 	if resp.StatusCode == http.StatusOK {
