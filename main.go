@@ -10,12 +10,14 @@ import (
 	"github.com/golang/glog"
 	"io/ioutil"
 	"net/http"
+	"os"
 	"time"
 )
 
 var (
-	wait       time.Duration
-	configFile *string
+	wait            time.Duration
+	trendMicroToken string
+	configFile      *string
 )
 
 func init() {
@@ -23,6 +25,7 @@ func init() {
 	flag.Parse()
 	flag.Lookup("logtostderr").Value.Set("true")
 	//config := readConfig()
+	trendMicroToken = os.Getenv("TREND_TOKEN")
 }
 
 func main() {
@@ -35,7 +38,7 @@ func main() {
 	tr.TLSClientConfig = &tls.Config{InsecureSkipVerify: true}
 	client := &http.Client{Transport: tr}
 	req, _ := http.NewRequest("GET", "https://10.71.6.95/api/computers/2283", nil)
-	req.Header.Set("api-secret-key", "3:u7Dhsbs66vhSwRrNmWu3RCOWUyBVuZEBAJcj0DSTg5k=")
+	req.Header.Set("api-secret-key", trendMicroToken)
 	req.Header.Set("api-version", "v1")
 	resp, err := client.Do(req)
 	if err != nil {
@@ -54,10 +57,12 @@ func main() {
 	// Create an uploader with the session and default options
 	uploader := s3manager.NewUploader(sess)
 
+	s3Directory := time.Now().Format("2006-01-02 15:04:05")
+	s3Directory += "/trendmicro"
 	// Upload the file to S3.
 	result, err := uploader.Upload(&s3manager.UploadInput{
-		Bucket: aws.String("hackathontest22"),
-		Key:    aws.String("test"),
+		Bucket: aws.String("buckethackathon"),
+		Key:    aws.String(s3Directory),
 		Body:   bytes.NewBufferString(bodyString),
 	})
 	if err != nil {
