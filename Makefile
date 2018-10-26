@@ -1,6 +1,6 @@
 FLAGS =
 APPNAME = compliance-agent
-COMMONENVVAR = GOOS=linux GOARCH=amd64
+COMMONENVVAR = GOOS=darwin GOARCH=amd64
 BUILDENVVAR = CGO_ENABLED=0
 HASHTAG = $(shell git rev-parse --short HEAD)
 export GOPATH
