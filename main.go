@@ -37,6 +37,7 @@ func init() {
 	targetPrefix = flag.String("prefix", "mpm", "prefix to store the output of the commands")
 	targetUser = flag.String("username", "", "ssh username, must be passed when cmd is entered")
 	targetPassword = flag.String("password", "", "ssh password, must be passed when cmd is entered")
+	trendMicroToken = flag.String("trendMicroToken", "", "token to access TrendMicro API")
 	flag.Parse()
 	flag.Lookup("logtostderr").Value.Set("true")
 	if *targetAddress == "" {
