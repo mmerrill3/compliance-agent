@@ -13,6 +13,7 @@ import (
 	"net/http"
 	"os"
 	"time"
+	"v4e.io/compliance/agent/tasks"
 	"v4e.io/compliance/agent/types"
 )
 
@@ -22,10 +23,19 @@ var (
 	s3Prefix        string
 	s3Bucket        string
 	targetAddress   *string
+	targetCmd       *string
+	targetFile      *string
+	targetUser      *string
+	targetPassword  *string
+	taskSlice       []tasks.Task
 )
 
 func init() {
-	targetAddress = flag.String("target", "127.0.0.1", "target host")
+	targetAddress = flag.String("target", "", "target host")
+	targetCmd = flag.String("cmd", "", "command to run through ssh")
+	targetFile = flag.String("file", "", "file to store the output of the ssh command")
+	targetUser = flag.String("username", "", "ssh username, must be passed when cmd is entered")
+	targetPassword = flag.String("password", "", "ssh password, must be passed when cmd is entered")
 	flag.Parse()
 	flag.Lookup("logtostderr").Value.Set("true")
 	trendMicroToken = os.Getenv("TREND_TOKEN")
@@ -34,9 +44,34 @@ func init() {
 	if s3Prefix == "" {
 		s3Prefix = "test"
 	}
+	if *targetAddress == "" {
+		glog.Fatal("Must pass in a target")
+	}
+	if *targetCmd != "" {
+		if *targetUser == "" || *targetPassword == "" {
+			glog.Fatal("Cannot launch remote command without username and password")
+		}
+		if *targetFile == "" {
+			glog.Fatal("Cannot launch remote command without naming a file for output")
+		}
+		remoteTask := &tasks.RemoteAccessTask{User: *targetUser, Pwd: *targetPassword, Host: *targetAddress, FileName: *targetFile}
+		taskSlice = append(taskSlice, remoteTask)
+	}
 }
 
 func main() {
+
+	if len(taskSlice) > 0 {
+		for _, task := range taskSlice {
+			result, err := task.Build(*targetCmd)
+			if err != nil {
+				glog.Fatalf("error in running task %v", err)
+			}
+			storeInS3(result, task.GetFileName())
+		}
+		return
+	}
+
 	var bodyString string
 	tr := &http.Transport{
 		MaxIdleConns:       10,
@@ -69,6 +104,11 @@ func main() {
 		glog.Fatalf("Found bad response code from trend server")
 	}
 
+	storeInS3(bodyString, "trendMicro")
+
+}
+
+func storeInS3(payload, filename string) {
 	// The session the S3 Uploader will use
 	sess := session.Must(session.NewSession(&aws.Config{Region: aws.String("us-west-2")}))
 
@@ -76,13 +116,14 @@ func main() {
 	uploader := s3manager.NewUploader(sess)
 
 	s3Directory := s3Prefix
-	s3Directory += "/trendmicro"
+	s3Directory += "/"
+	s3Directory += filename
 
 	// Upload the file to S3.
 	result, err := uploader.Upload(&s3manager.UploadInput{
 		Bucket: aws.String(s3Bucket),
 		Key:    aws.String(s3Directory),
-		Body:   bytes.NewBufferString(bodyString),
+		Body:   bytes.NewBufferString(payload),
 	})
 	if err != nil {
 		glog.Fatalf("failed to upload file, %v", err)
