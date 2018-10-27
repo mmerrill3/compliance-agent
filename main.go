@@ -6,6 +6,7 @@ import (
 	"crypto/tls"
 	"encoding/json"
 	"flag"
+	"fmt"
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/s3/s3manager"
@@ -124,7 +125,7 @@ func storeInS3(payload, filename string) {
 	glog.Infof("sha256 hash value for upload: %x", hashValue)
 	// Upload the file to S3.
 	metaMap := make(map[string]*string)
-	hashValueStr := string(hashValue)
+	hashValueStr := fmt.Sprintf("%x", hashValue)
 	hashValueStr = url.QueryEscape(hashValueStr)
 	metaMap["sha256"] = &hashValueStr
 	result, err := uploader.Upload(&s3manager.UploadInput{
