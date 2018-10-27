@@ -25,7 +25,7 @@ var (
 	targetFile      *string
 	targetPrefix    *string
 	targetUser      *string
-	targetPassword  *string
+	keyFile         *string
 	taskSlice       []tasks.Task
 )
 
@@ -36,7 +36,7 @@ func init() {
 	targetFile = flag.String("file", "", "file to store the output of the ssh command")
 	targetPrefix = flag.String("prefix", "mpm", "prefix to store the output of the commands")
 	targetUser = flag.String("username", "", "ssh username, must be passed when cmd is entered")
-	targetPassword = flag.String("password", "", "ssh password, must be passed when cmd is entered")
+	keyFile = flag.String("keyFile", "", "ssh private key file, must be passed when cmd is entered")
 	trendMicroToken = flag.String("trendMicroToken", "", "token to access TrendMicro API")
 	flag.Parse()
 	flag.Lookup("logtostderr").Value.Set("true")
@@ -44,13 +44,13 @@ func init() {
 		glog.Fatal("Must pass in a target")
 	}
 	if *targetCmd != "" {
-		if *targetUser == "" || *targetPassword == "" {
-			glog.Fatal("Cannot launch remote command without username and password")
+		if *targetUser == "" || *keyFile == "" {
+			glog.Fatal("Cannot launch remote command without username and keyfile")
 		}
 		if *targetFile == "" {
 			glog.Fatal("Cannot launch remote command without naming a file for output")
 		}
-		remoteTask := &tasks.RemoteAccessTask{User: *targetUser, Pwd: *targetPassword, Host: *targetAddress, FileName: *targetFile}
+		remoteTask := &tasks.RemoteAccessTask{User: *targetUser, KeyFile: *keyFile, Host: *targetAddress, FileName: *targetFile}
 		taskSlice = append(taskSlice, remoteTask)
 	}
 }
