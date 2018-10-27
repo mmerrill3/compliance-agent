@@ -12,6 +12,7 @@ import (
 	"github.com/golang/glog"
 	"io/ioutil"
 	"net/http"
+	"net/url"
 	"time"
 	"v4e.io/compliance/agent/tasks"
 	"v4e.io/compliance/agent/types"
@@ -112,20 +113,25 @@ func storeInS3(payload, filename string) {
 	// Create an uploader with the session and default options
 	uploader := s3manager.NewUploader(sess)
 
-	s3Directory := *targetPrefix
-	s3Directory += "/"
-	s3Directory += filename
-
 	hash := sha256.New()
 	hash.Write([]byte(payload))
 	hashValue := hash.Sum(nil)
 
+	s3Directory := *targetPrefix
+	s3Directory += "/"
+	s3Directory += filename
+
 	glog.Infof("sha256 hash value for upload: %x", hashValue)
 	// Upload the file to S3.
+	metaMap := make(map[string]*string)
+	hashValueStr := string(hashValue)
+	hashValueStr = url.QueryEscape(hashValueStr)
+	metaMap["sha256"] = &hashValueStr
 	result, err := uploader.Upload(&s3manager.UploadInput{
-		Bucket: aws.String(*s3Bucket),
-		Key:    aws.String(s3Directory),
-		Body:   bytes.NewBufferString(payload),
+		Bucket:   aws.String(*s3Bucket),
+		Key:      aws.String(s3Directory),
+		Body:     bytes.NewBufferString(payload),
+		Metadata: metaMap,
 	})
 	if err != nil {
 		glog.Fatalf("failed to upload file, %v", err)
