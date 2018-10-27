@@ -11,7 +11,6 @@ import (
 	"github.com/golang/glog"
 	"io/ioutil"
 	"net/http"
-	"os"
 	"time"
 	"v4e.io/compliance/agent/tasks"
 	"v4e.io/compliance/agent/types"
@@ -19,12 +18,12 @@ import (
 
 var (
 	wait            time.Duration
-	trendMicroToken string
-	s3Prefix        string
-	s3Bucket        string
+	trendMicroToken *string
+	s3Bucket        *string
 	targetAddress   *string
 	targetCmd       *string
 	targetFile      *string
+	targetPrefix    *string
 	targetUser      *string
 	targetPassword  *string
 	taskSlice       []tasks.Task
@@ -33,17 +32,13 @@ var (
 func init() {
 	targetAddress = flag.String("target", "", "target host")
 	targetCmd = flag.String("cmd", "", "command to run through ssh")
+	s3Bucket = flag.String("s3Bucket", "", "S3 bucket to store the results")
 	targetFile = flag.String("file", "", "file to store the output of the ssh command")
+	targetPrefix = flag.String("prefix", "mpm", "prefix to store the output of the commands")
 	targetUser = flag.String("username", "", "ssh username, must be passed when cmd is entered")
 	targetPassword = flag.String("password", "", "ssh password, must be passed when cmd is entered")
 	flag.Parse()
 	flag.Lookup("logtostderr").Value.Set("true")
-	trendMicroToken = os.Getenv("TREND_TOKEN")
-	s3Prefix = os.Getenv("S3_PREFIX")
-	s3Bucket = os.Getenv("S3_BUCKET")
-	if s3Prefix == "" {
-		s3Prefix = "test"
-	}
 	if *targetAddress == "" {
 		glog.Fatal("Must pass in a target")
 	}
@@ -88,7 +83,7 @@ func main() {
 	}
 
 	req, _ := http.NewRequest("POST", "https://10.71.6.95/api/computers/search", byteBuffer)
-	req.Header.Set("api-secret-key", trendMicroToken)
+	req.Header.Set("api-secret-key", *trendMicroToken)
 	req.Header.Set("api-version", "v1")
 	req.Header.Set("Content-Type", "application/json")
 	resp, err := client.Do(req)
@@ -115,13 +110,13 @@ func storeInS3(payload, filename string) {
 	// Create an uploader with the session and default options
 	uploader := s3manager.NewUploader(sess)
 
-	s3Directory := s3Prefix
+	s3Directory := *targetPrefix
 	s3Directory += "/"
 	s3Directory += filename
 
 	// Upload the file to S3.
 	result, err := uploader.Upload(&s3manager.UploadInput{
-		Bucket: aws.String(s3Bucket),
+		Bucket: aws.String(*s3Bucket),
 		Key:    aws.String(s3Directory),
 		Body:   bytes.NewBufferString(payload),
 	})
