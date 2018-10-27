@@ -5,11 +5,12 @@ import (
 	"fmt"
 	"github.com/golang/glog"
 	"golang.org/x/crypto/ssh"
+	"io/ioutil"
 )
 
 // RemoteAccessTask provides details on compliance for remote access to a host
 type RemoteAccessTask struct {
-	User, Pwd, Host, FileName string
+	User, KeyFile, Host, FileName string
 }
 
 // Build is responsible for building file to put into S3
@@ -25,14 +26,20 @@ func (b *RemoteAccessTask) GetFileName() string {
 }
 
 func (b *RemoteAccessTask) accessAndRun(cmd string) (output string, err error) {
-	glog.Infof("Calling with password %s", b.Pwd)
+	key, err := ioutil.ReadFile(b.KeyFile)
+	if err != nil {
+		glog.Fatalf("Unable to read private key: %v", err)
+	}
+	signer, err := ssh.ParsePrivateKey(key)
+
 	config := &ssh.ClientConfig{
 		HostKeyCallback: ssh.InsecureIgnoreHostKey(),
 		User:            b.User,
 		Auth: []ssh.AuthMethod{
-			ssh.Password(b.Pwd),
+			ssh.PublicKeys(signer),
 		},
 	}
+
 	client, err := ssh.Dial("tcp", fmt.Sprintf("%s:22", b.Host), config)
 	if err != nil {
 		panic(err)
