@@ -112,13 +112,15 @@ func storeInS3(payload, filename string) {
 	// Create an uploader with the session and default options
 	uploader := s3manager.NewUploader(sess)
 
-	s3Directory := *targetPrefix
-	s3Directory += "/"
-	s3Directory += filename
-
 	hash := sha256.New()
 	hash.Write([]byte(payload))
 	hashValue := hash.Sum(nil)
+
+	s3Directory := *targetPrefix
+	s3Directory += "/"
+	s3Directory += filename
+	s3Directory += "-"
+	s3Directory += string(hashValue)
 
 	glog.Infof("sha256 hash value for upload: %x", hashValue)
 	// Upload the file to S3.
