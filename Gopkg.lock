@@ -60,6 +60,22 @@
   pruneopts = "UT"
   revision = "0b12d6b5"
 
+[[projects]]
+  branch = "master"
+  digest = "1:2464e24610e1cdab712d3955745c0da6d1d26c50d6a7aecf61ebe07e68d2ec4d"
+  name = "golang.org/x/crypto"
+  packages = [
+    "curve25519",
+    "ed25519",
+    "ed25519/internal/edwards25519",
+    "internal/chacha20",
+    "internal/subtle",
+    "poly1305",
+    "ssh",
+  ]
+  pruneopts = "UT"
+  revision = "e84da0312774c21d64ee2317962ef669b27ffb41"
+
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
@@ -68,6 +84,7 @@
     "github.com/aws/aws-sdk-go/aws/session",
     "github.com/aws/aws-sdk-go/service/s3/s3manager",
     "github.com/golang/glog",
+    "golang.org/x/crypto/ssh",
   ]
   solver-name = "gps-cdcl"
   solver-version = 1
