@@ -2,6 +2,7 @@ package main
 
 import (
 	"bytes"
+	"crypto/sha256"
 	"crypto/tls"
 	"encoding/json"
 	"flag"
@@ -115,6 +116,11 @@ func storeInS3(payload, filename string) {
 	s3Directory += "/"
 	s3Directory += filename
 
+	hash := sha256.New()
+	hash.Write([]byte(payload))
+	hashValue := hash.Sum(nil)
+
+	glog.Infof("sha256 hash value for upload: %x", hashValue)
 	// Upload the file to S3.
 	result, err := uploader.Upload(&s3manager.UploadInput{
 		Bucket: aws.String(*s3Bucket),
