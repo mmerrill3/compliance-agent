@@ -11,3 +11,7 @@ The environment variables to set for this script are as follows
 The script expects the -target option to be passed to it.  This can be an IP address or a host.  For example:
 
 **./compliance-agent -target 10.205.48.114 -v 4**
+
+If you are invoking a remote SSH command, you need to pass in a few more arguments.  Pass in the file to save on S3, the username and password to use for SSH access, and the command to run.
+
+./compliance-agent -target 10.205.48.114 -v 4 -username mmerrill -password 888433j3j! -cmd whoami -file whoami
